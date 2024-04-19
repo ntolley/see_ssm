@@ -21,7 +21,8 @@ import pickle
 from scipy.signal import savgol_filter
 from functools import partial
 import imageio
-num_cores = multiprocessing.cpu_count()
+# num_cores = multiprocessing.cpu_count()
+num_cores = 32
 
 #Simple feedforward ANN for decoding kinematics
 class model_ann(nn.Module):
