@@ -451,7 +451,7 @@ def make_generators(pred_df, neural_df, neural_offset, cv_dict, metadata,
     sampling_rate = 100
     kernel_offset = int(metadata['kernel_halfwidth'] * sampling_rate)  #Convolution kernel centered at zero, add to neural offset
     offset = neural_offset + kernel_offset
-    data_step_size = 1 
+    data_step_size = 100
 
     # Set up PyTorch Dataloaders
     
@@ -594,8 +594,8 @@ def get_marker_decode_dataframes(noise_fold=0):
 
 
     # _______________________Normal shuffle split scheme_________________
-    cv_split = ShuffleSplit(n_splits=1, test_size=0.25, random_state=3)
-    val_split = ShuffleSplit(n_splits=1, test_size=0.25, random_state=3)
+    cv_split = ShuffleSplit(n_splits=5, test_size=0.25, random_state=3)
+    val_split = ShuffleSplit(n_splits=5, test_size=0.25, random_state=3)
 
     cv_dict = {}
     for fold, (train_val_idx, test_idx) in enumerate(cv_split.split(trial_ids)):
