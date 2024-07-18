@@ -324,7 +324,7 @@ class SEE_Dataset(torch.utils.data.Dataset):
         if scale_neural:
             self.neuralData_list = self.transform_data(self.neuralData_list, self.neural_scaler, exclude_neural)
 
-        self.split_offset = np.round((self.offset/self.data_step_size) / 2).astype(int)
+        self.split_offset = np.round(self.offset / 2).astype(int)
 
         self.X_tensor, self.y_tensor = self.load_splits()
         self.num_samples = np.sum(self.X_tensor.size(0))
@@ -397,7 +397,8 @@ class SEE_Dataset(torch.utils.data.Dataset):
             X_tensor = self.format_splits(self.neuralData_list)
 
         # X_tensor, y_tensor = X_tensor[:,:-self.split_offset:self.data_step_size,:], y_tensor[:,self.split_offset::self.data_step_size,:]
-        X_tensor, y_tensor = X_tensor[:,self.split_offset::self.data_step_size,:], y_tensor[:,:-self.split_offset:self.data_step_size,:]
+        # X_tensor, y_tensor = X_tensor[:,self.split_offset::self.data_step_size,:], y_tensor[:,:-self.split_offset:self.data_step_size,:]
+        X_tensor, y_tensor = X_tensor[:,self.split_offset:,:], y_tensor[:,:-self.split_offset,:]
 
         assert X_tensor.shape[0] == y_tensor.shape[0]
         return X_tensor, y_tensor
@@ -445,55 +446,55 @@ def matrix_corr(x, y, axis=0):
     return corr
 
 
-def make_generators(pred_df, neural_df, neural_offset, cv_dict, metadata,
-                    exclude_neural=None, exclude_kinematics=None, window_size=1, 
-                    flip_outputs=False, fold=0, batch_size=10000, device='cpu',):
-    sampling_rate = 100
-    kernel_offset = int(metadata['kernel_halfwidth'] * sampling_rate)  #Convolution kernel centered at zero, add to neural offset
-    offset = neural_offset + kernel_offset
-    data_step_size = 100
+# def make_generators(pred_df, neural_df, neural_offset, cv_dict, metadata,
+#                     exclude_neural=None, exclude_kinematics=None, window_size=1, 
+#                     flip_outputs=False, fold=0, batch_size=10000, device='cpu',):
+#     sampling_rate = 100
+#     kernel_offset = int(metadata['kernel_halfwidth'] * sampling_rate)  #Convolution kernel centered at zero, add to neural offset
+#     offset = neural_offset + kernel_offset
+#     data_step_size = 100
 
-    # Set up PyTorch Dataloaders
+#     # Set up PyTorch Dataloaders
     
-    # Parameters
-    train_params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': num_cores, 'pin_memory':False}
-    train_eval_params = {'batch_size': batch_size, 'shuffle': False, 'num_workers': num_cores, 'pin_memory':False}
-    validation_params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': num_cores, 'pin_memory':False}
-    test_params = {'batch_size': batch_size, 'shuffle': False, 'num_workers': num_cores, 'pin_memory':False}
+#     # Parameters
+#     train_params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': num_cores, 'pin_memory':False}
+#     train_eval_params = {'batch_size': batch_size, 'shuffle': False, 'num_workers': num_cores, 'pin_memory':False}
+#     validation_params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': num_cores, 'pin_memory':False}
+#     test_params = {'batch_size': batch_size, 'shuffle': False, 'num_workers': num_cores, 'pin_memory':False}
 
-    scale_neural = True
-    scale_kinematics = True
-    flip_outputs=flip_outputs
+#     scale_neural = True
+#     scale_kinematics = True
+#     flip_outputs=flip_outputs
 
-    # Generators
-    training_set = SEE_Dataset(cv_dict, fold, 'train_idx', pred_df, neural_df, offset, window_size, 
-                               data_step_size, device, 'posData', scale_neural=scale_neural,
-                               scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
-                               exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics)
-    training_neural_scaler = training_set.neural_scaler
-    training_kinematic_scaler = training_set.kinematic_scaler
+#     # Generators
+#     training_set = SEE_Dataset(cv_dict, fold, 'train_idx', pred_df, neural_df, offset, window_size, 
+#                                data_step_size, device, 'posData', scale_neural=scale_neural,
+#                                scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
+#                                exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics)
+#     training_neural_scaler = training_set.neural_scaler
+#     training_kinematic_scaler = training_set.kinematic_scaler
 
-    training_generator = torch.utils.data.DataLoader(training_set, **train_params)
-    training_eval_generator = torch.utils.data.DataLoader(training_set, **train_eval_params)
+#     training_generator = torch.utils.data.DataLoader(training_set, **train_params)
+#     training_eval_generator = torch.utils.data.DataLoader(training_set, **train_eval_params)
 
-    validation_set = SEE_Dataset(cv_dict, fold, 'validation_idx', pred_df, neural_df, offset, window_size, 
-                                 data_step_size, device, 'posData', scale_neural=scale_neural,
-                                 scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
-                                 exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics,
-                                 neural_scaler=training_neural_scaler, kinematic_scaler=training_kinematic_scaler)
-    validation_generator = torch.utils.data.DataLoader(validation_set, **validation_params)
+#     validation_set = SEE_Dataset(cv_dict, fold, 'validation_idx', pred_df, neural_df, offset, window_size, 
+#                                  data_step_size, device, 'posData', scale_neural=scale_neural,
+#                                  scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
+#                                  exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics,
+#                                  neural_scaler=training_neural_scaler, kinematic_scaler=training_kinematic_scaler)
+#     validation_generator = torch.utils.data.DataLoader(validation_set, **validation_params)
 
-    testing_set = SEE_Dataset(cv_dict, fold, 'test_idx', pred_df, neural_df, offset, window_size, 
-                              data_step_size, device, 'posData', scale_neural=scale_neural,
-                              scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
-                              exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics,
-                              neural_scaler=training_neural_scaler, kinematic_scaler=training_kinematic_scaler)
-    testing_generator = torch.utils.data.DataLoader(testing_set, **test_params)
+#     testing_set = SEE_Dataset(cv_dict, fold, 'test_idx', pred_df, neural_df, offset, window_size, 
+#                               data_step_size, device, 'posData', scale_neural=scale_neural,
+#                               scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
+#                               exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics,
+#                               neural_scaler=training_neural_scaler, kinematic_scaler=training_kinematic_scaler)
+#     testing_generator = torch.utils.data.DataLoader(testing_set, **test_params)
 
-    data_arrays = (training_set, validation_set, testing_set)
-    generators = (training_generator, training_eval_generator, validation_generator, testing_generator)
+#     data_arrays = (training_set, validation_set, testing_set)
+#     generators = (training_generator, training_eval_generator, validation_generator, testing_generator)
 
-    return data_arrays, generators
+#     return data_arrays, generators
 
 # Prepare dataframes for movement decoding
 def get_marker_decode_dataframes(noise_fold=0):
@@ -619,6 +620,7 @@ def get_marker_decode_dataframes(noise_fold=0):
     noposition_neural_mask = ~(neural_df['unit'].str.contains(pat='position'))
     notask_neural_df = neural_df[np.logical_and.reduce([nolayout_neural_mask, noposition_neural_mask])]
     task_neural_df = neural_df.copy()
+    task_neural_df = neural_df[noposition_neural_mask]
 
     data_dict = {'wrist_df': wrist_df, 'task_neural_df': task_neural_df, 'notask_neural_df': notask_neural_df,
                  'metadata': metadata, 'cv_dict': cv_dict, 'noise_fold': noise_fold}
@@ -671,11 +673,11 @@ def add_noise(neural_df, wrist_df, cv_dict, fold, num_trials, kinematic_noise=10
 # Prepare dataloaders for batch training
 def make_generators(pred_df, neural_df, neural_offset, cv_dict, metadata,
                     exclude_neural=None, exclude_kinematics=None, window_size=1, 
-                    flip_outputs=False, fold=0, batch_size=1000, device='cpu', label_col=None):
+                    flip_outputs=False, fold=0, batch_size=1000, device='cpu', label_col=None,
+                    data_step_size=1):
     sampling_rate = 100
     kernel_offset = int(metadata['kernel_halfwidth'] * sampling_rate)  #Convolution kernel centered at zero, add to neural offset
     offset = neural_offset 
-    data_step_size = 1 
 
     # Set up PyTorch Dataloaders
     
