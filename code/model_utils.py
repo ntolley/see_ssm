@@ -12,6 +12,7 @@ from scipy import stats
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import ShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit
 import torch
 from torch import nn
 import torch.nn.functional as F
@@ -427,11 +428,11 @@ def mse(y_pred, y_true, hidden, cell, labels, weight=1):
 
 # Utility function to load dataframes of preprocessed kinematic/neural data
 def load_mocap_df(data_path, kinematic_suffix=None):
-    kinematic_df = pd.read_pickle(f'{data_path}kinematic_df{kinematic_suffix}.pkl')
-    neural_df = pd.read_pickle(data_path + 'neural_df.pkl')
+    kinematic_df = pd.read_pickle(f'{data_path}/kinematic_df{kinematic_suffix}.pkl')
+    neural_df = pd.read_pickle(f'{data_path}/neural_df.pkl')
 
     # read python dict back from the file
-    metadata_file = open(data_path + 'metadata.pkl', 'rb')
+    metadata_file = open(f'{data_path}/metadata.pkl', 'rb')
     metadata = pickle.load(metadata_file)
     metadata_file.close()
 
@@ -445,60 +446,9 @@ def matrix_corr(x, y, axis=0):
     corr = np.sum(np.multiply((x-mean_x), (y-mean_y)), axis=axis) / np.sqrt(np.multiply( np.sum((x-mean_x)**2, axis=axis), np.sum((y-mean_y)**2, axis=axis) ))
     return corr
 
-
-# def make_generators(pred_df, neural_df, neural_offset, cv_dict, metadata,
-#                     exclude_neural=None, exclude_kinematics=None, window_size=1, 
-#                     flip_outputs=False, fold=0, batch_size=10000, device='cpu',):
-#     sampling_rate = 100
-#     kernel_offset = int(metadata['kernel_halfwidth'] * sampling_rate)  #Convolution kernel centered at zero, add to neural offset
-#     offset = neural_offset + kernel_offset
-#     data_step_size = 100
-
-#     # Set up PyTorch Dataloaders
-    
-#     # Parameters
-#     train_params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': num_cores, 'pin_memory':False}
-#     train_eval_params = {'batch_size': batch_size, 'shuffle': False, 'num_workers': num_cores, 'pin_memory':False}
-#     validation_params = {'batch_size': batch_size, 'shuffle': True, 'num_workers': num_cores, 'pin_memory':False}
-#     test_params = {'batch_size': batch_size, 'shuffle': False, 'num_workers': num_cores, 'pin_memory':False}
-
-#     scale_neural = True
-#     scale_kinematics = True
-#     flip_outputs=flip_outputs
-
-#     # Generators
-#     training_set = SEE_Dataset(cv_dict, fold, 'train_idx', pred_df, neural_df, offset, window_size, 
-#                                data_step_size, device, 'posData', scale_neural=scale_neural,
-#                                scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
-#                                exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics)
-#     training_neural_scaler = training_set.neural_scaler
-#     training_kinematic_scaler = training_set.kinematic_scaler
-
-#     training_generator = torch.utils.data.DataLoader(training_set, **train_params)
-#     training_eval_generator = torch.utils.data.DataLoader(training_set, **train_eval_params)
-
-#     validation_set = SEE_Dataset(cv_dict, fold, 'validation_idx', pred_df, neural_df, offset, window_size, 
-#                                  data_step_size, device, 'posData', scale_neural=scale_neural,
-#                                  scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
-#                                  exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics,
-#                                  neural_scaler=training_neural_scaler, kinematic_scaler=training_kinematic_scaler)
-#     validation_generator = torch.utils.data.DataLoader(validation_set, **validation_params)
-
-#     testing_set = SEE_Dataset(cv_dict, fold, 'test_idx', pred_df, neural_df, offset, window_size, 
-#                               data_step_size, device, 'posData', scale_neural=scale_neural,
-#                               scale_kinematics=scale_kinematics, flip_outputs=flip_outputs,
-#                               exclude_neural=exclude_neural, exclude_kinematic=exclude_kinematics,
-#                               neural_scaler=training_neural_scaler, kinematic_scaler=training_kinematic_scaler)
-#     testing_generator = torch.utils.data.DataLoader(testing_set, **test_params)
-
-#     data_arrays = (training_set, validation_set, testing_set)
-#     generators = (training_generator, training_eval_generator, validation_generator, testing_generator)
-
-#     return data_arrays, generators
-
 # Prepare dataframes for movement decoding
-def get_marker_decode_dataframes(noise_fold=0):
-    kinematic_df, neural_df, metadata = load_mocap_df('../data/', kinematic_suffix='')
+def get_marker_decode_dataframes(fpath='../data', noise_fold=0):
+    kinematic_df, neural_df, metadata = load_mocap_df(fpath, kinematic_suffix='')
 
     num_trials = len(kinematic_df['trial'].unique())
 
@@ -580,7 +530,7 @@ def get_marker_decode_dataframes(noise_fold=0):
     #Generate cv_dict for regular train/test/validate split (no rolling window)
 
     # _______________________Stratified shuffle split scheme_________________
-    # cv_split = StratifiedShuffleSplit(n_splits=10, test_size=0.5, random_state=3)
+    # cv_split = StratifiedShuffleSplit(n_splits=5, test_size=0.5, random_state=3)
     # val_split = StratifiedShuffleSplit(n_splits=1, test_size=0.5, random_state=3)
 
     # cv_dict = {}
@@ -594,7 +544,7 @@ def get_marker_decode_dataframes(noise_fold=0):
 
 
 
-    # _______________________Normal shuffle split scheme_________________
+    # # _______________________Normal shuffle split scheme_________________
     cv_split = ShuffleSplit(n_splits=5, test_size=0.25, random_state=3)
     val_split = ShuffleSplit(n_splits=5, test_size=0.25, random_state=3)
 
@@ -620,9 +570,11 @@ def get_marker_decode_dataframes(noise_fold=0):
     noposition_neural_mask = ~(neural_df['unit'].str.contains(pat='position'))
     notask_neural_df = neural_df[np.logical_and.reduce([nolayout_neural_mask, noposition_neural_mask])]
     task_neural_df = neural_df.copy()
-    task_neural_df = neural_df[noposition_neural_mask]
+    layout_neural_df = task_neural_df[noposition_neural_mask]
+    position_neural_df = task_neural_df[nolayout_neural_mask]
 
     data_dict = {'wrist_df': wrist_df, 'task_neural_df': task_neural_df, 'notask_neural_df': notask_neural_df,
+                 'layout_neural_df': layout_neural_df, 'position_neural_df': position_neural_df,
                  'metadata': metadata, 'cv_dict': cv_dict, 'noise_fold': noise_fold}
     return data_dict
 

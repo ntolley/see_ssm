@@ -42,26 +42,26 @@ def make_dataframes():
     torch.backends.cudnn.benchmark = True
 
     video_paths = [
-        '/users/ntolley/scratch/SEE_analysis/experiment_recordings/Anipose-Jun5-2023/pose-3d/Spike_06-05-0818.csv',
-        # '/users/ntolley/scratch/SEE_analysis/experiment_recordings/Anipose-Jun6-2023/pose-3d/Spike_06-06-0905.csv',
-        '/users/ntolley/scratch/SEE_analysis/experiment_recordings/Anipose-Jun9-2023/pose-3d/Spike_06-09-0907.csv'
+        '/users/ntolley/data/ntolley/SEE_analysis/experiment_recordings/Anipose-Jun5-2023/pose-3d/Spike_06-05-0818.csv',
+        '/users/ntolley/data/ntolley/SEE_analysis/experiment_recordings/Anipose-Jun6-2023/pose-3d/Spike_06-06-0905.csv',
+        '/users/ntolley/data/ntolley/SEE_analysis/experiment_recordings/Anipose-Jun9-2023/pose-3d/Spike_06-09-0907.csv'
     ]
 
     neural_paths = [
-        '/users/ntolley/scratch/SEE_analysis/experiment_recordings/Analysis_Jun05_2023',
-        # '/users/ntolley/scratch/SEE_analysis/experiment_recordings/Analysis_June6_2023',
-        '/users/ntolley/scratch/SEE_analysis/experiment_recordings/Analysis_Jun09_2023'
+        '/users/ntolley/data/ntolley/SEE_analysis/experiment_recordings/Analysis_Jun05_2023',
+        '/users/ntolley/data/ntolley/SEE_analysis/experiment_recordings/Analysis_June6_2023',
+        '/users/ntolley/data/ntolley/SEE_analysis/experiment_recordings/Analysis_Jun09_2023'
     ]
 
     session_names = [
         'SPKRH20230605',
-        # 'SPKRH20230606',
+        'SPKRH20230606',
         'SPKRH20230609'
     ]
 
     cb_names = [
         'Spike_Jun05',
-        # 'Spike_Jun06',
+        'Spike_Jun06',
         'Spike_Jun09'
     ]
 
@@ -353,7 +353,7 @@ def make_dataframes():
 
         metadata={'kinematic_metadata':kinematic_metadata, 'neural_metadata':neural_metadata, 'num_trials':num_events, 'kernel_halfwidth':kernel_halfwidth}
 
-        save_path = f'/users/ntolley/scratch/SEE_analysis/processed_data/{session_name}'
+        save_path = f'/users/ntolley/data/ntolley//SEE_analysis/processed_data/{session_name}'
         os.makedirs(save_path, exist_ok=True)
 
         #Save DataFrames to temporary folder
